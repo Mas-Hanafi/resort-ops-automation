@@ -1,0 +1,19 @@
+{
+  "name": "resort-ops-automation",
+  "version": "0.1.0",
+  "description": "Laporan harian otomatis untuk resort, dikirim ke Telegram lewat GitHub Actions.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
