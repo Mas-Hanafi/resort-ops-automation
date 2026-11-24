@@ -9,12 +9,12 @@ Portofolio open source milik pemilik (vibe coder, bukan programmer) dengan tema 
 - Setiap pagi 07:00 WIB, pesan ringkasan terkirim ke Telegram manajer tanpa kerja manual.
 - Isi laporan sesuai sketsa yang sudah disetujui (okupansi, check-in/out, pendapatan vs minggu lalu, booking baru + belum bayar, peringatan pembayaran tertunda).
 - Siapa pun bisa fork repo, isi token bot sendiri, dan menjalankannya.
-- Sumber data bisa diganti ke backend DPR tanpa mengubah bagian lain.
+- Sumber data bisa diganti ke backend booking asli tanpa mengubah bagian lain.
 
 ## Non-goals
 - Bot interaktif / penjawab tamu (itu alur lain, nanti).
 - Layanan yang selalu aktif, dashboard web, aplikasi mobile.
-- Integrasi data asli DPR sekarang.
+- Integrasi data asli sekarang.
 
 ## Anti-goals (dianggap gagal walau jalan)
 - Ada data tamu, harga internal, atau kredensial asli di repo publik.

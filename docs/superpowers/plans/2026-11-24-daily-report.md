@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Repo `resort-ops-automation`, lisensi MIT, properti fiktif "Villa Senja" (24 kamar).
-- Tanpa data/kredensial asli DPR; token hanya dari env `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+- Tanpa data/kredensial asli milik properti nyata; token hanya dari env `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
 - Cron `0 0 * * *` UTC (= 07:00 WIB) + `workflow_dispatch`.
 - Laporan berbahasa Indonesia, nominal format Rp.
 - Semua "tanggal" dihitung dalam WIB (UTC+7).
