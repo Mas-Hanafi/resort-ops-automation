@@ -22,6 +22,11 @@ export async function run(
   const token = env.TELEGRAM_BOT_TOKEN;
   const chatId = env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) {
+    if (env.GITHUB_ACTIONS === 'true') {
+      // Secret kosong/salah nama di Actions: gagal keras, jangan hijau tanpa laporan.
+      log('Gagal: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID belum diisi di GitHub Secrets.');
+      return 1;
+    }
     log('[dry-run] TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID belum diisi, pesan tidak dikirim:\n');
     log(text);
     return 0;

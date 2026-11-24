@@ -22,6 +22,12 @@ test('posts chat_id and text to sendMessage', async () => {
   assert.equal(body.text, 'halo');
 });
 
+test('passes an abort signal so a hung connection cannot block the job', async () => {
+  const calls: { url: string; init: RequestInit }[] = [];
+  await sendTelegram(TOKEN, '999', 'halo', fakeFetch(200, calls));
+  assert.ok(calls[0].init.signal instanceof AbortSignal);
+});
+
 test('throws when response is not ok', async () => {
   await assert.rejects(() => sendTelegram(TOKEN, '999', 'halo', fakeFetch(401)), /401/);
 });

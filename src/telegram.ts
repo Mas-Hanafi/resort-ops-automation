@@ -14,6 +14,7 @@ export async function sendTelegram(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text }),
+      signal: AbortSignal.timeout(15_000),
     });
   } catch {
     throw new Error('Telegram API tidak bisa dihubungi (kesalahan jaringan)');

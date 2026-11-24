@@ -14,6 +14,15 @@ test('dry-run prints the report and exits 0 when token is missing', async () => 
   assert.match(out.join('\n'), /Laporan Harian/);
 });
 
+test('fails (exit 1) on GitHub Actions when secrets are missing instead of a silent green run', async () => {
+  const out: string[] = [];
+  let sent = false;
+  const code = await run({ GITHUB_ACTIONS: 'true' }, NOW, async () => { sent = true; }, (m) => out.push(m));
+  assert.equal(code, 1);
+  assert.equal(sent, false);
+  assert.match(out.join('\n'), /TELEGRAM_BOT_TOKEN/);
+});
+
 test('sends the formatted report when token and chat id are set', async () => {
   let sentText = '';
   const code = await run(
