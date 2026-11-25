@@ -20,6 +20,13 @@ export async function sendTelegram(
     throw new Error('Telegram API tidak bisa dihubungi (kesalahan jaringan)');
   }
   if (!res.ok) {
-    throw new Error(`Telegram API error: HTTP ${res.status}`);
+    let detail = '';
+    try {
+      const body = (await res.json()) as { description?: unknown };
+      if (typeof body.description === 'string') detail = ` (${body.description.replaceAll(token, '***')})`;
+    } catch {
+      // badan respons bukan JSON: cukup pakai status HTTP
+    }
+    throw new Error(`Telegram API error: HTTP ${res.status}${detail}`);
   }
 }

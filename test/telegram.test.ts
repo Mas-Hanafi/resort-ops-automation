@@ -32,6 +32,26 @@ test('throws when response is not ok', async () => {
   await assert.rejects(() => sendTelegram(TOKEN, '999', 'halo', fakeFetch(401)), /401/);
 });
 
+test('includes the Telegram description in the error so the cause is visible', async () => {
+  const withDescription = (async () =>
+    new Response(JSON.stringify({ ok: false, description: "Forbidden: bot can't send messages to bots" }), {
+      status: 403,
+    })) as typeof fetch;
+  await assert.rejects(
+    () => sendTelegram(TOKEN, '999', 'halo', withDescription),
+    /HTTP 403.*bot can't send messages to bots/,
+  );
+});
+
+test('scrubs the token if Telegram echoes it in the description', async () => {
+  const echo = (async () =>
+    new Response(JSON.stringify({ ok: false, description: `bad token ${TOKEN}` }), { status: 401 })) as typeof fetch;
+  await assert.rejects(
+    () => sendTelegram(TOKEN, '999', 'halo', echo),
+    (err: unknown) => err instanceof Error && !err.message.includes('SECRET-TOKEN-VALUE'),
+  );
+});
+
 test('error message does not contain the token', async () => {
   await assert.rejects(
     () => sendTelegram(TOKEN, '999', 'halo', fakeFetch(401)),
