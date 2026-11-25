@@ -6,15 +6,7 @@ Laporan harian otomatis untuk resort: setiap pagi pukul 07:00 WIB, ringkasan ope
 
 ## Contoh pesan
 
-```
-📊 Laporan Harian · Sel, 24 Nov
-🏡 Villa Senja
-Okupansi hari ini   : 11/24 kamar (46%)
-Check-in / out      : 4 masuk · 5 keluar
-Pendapatan kemarin  : Rp 8,8 jt (↓ 5% vs minggu lalu)
-Booking baru        : 4 (2 belum bayar)
-⚠️ Perlu perhatian  : 2 pembayaran tertunda >24 jam
-```
+![Contoh laporan harian di Telegram](docs/images/report-sample.png)
 
 Semua data di repo ini **dummy** (properti fiktif "Villa Senja"). Tidak ada data tamu atau kredensial asli.
 
