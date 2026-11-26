@@ -1,50 +1,50 @@
 # resort-ops-automation
 
-Laporan harian otomatis untuk resort: setiap pagi pukul 07:00 WIB, ringkasan operasional terkirim ke Telegram manajer tanpa ada yang menyusunnya manual.
+An automated daily report for a resort: every morning at 07:00 WIB (UTC+7), an operations summary arrives in the manager's Telegram without anyone putting it together by hand.
 
-*English: a small TypeScript job that runs on GitHub Actions every morning (07:00 WIB) and posts a resort daily report to Telegram. Data is dummy; the data source is a swappable adapter.*
+It is a small TypeScript job that runs on GitHub Actions. The data is dummy, and the data source is a swappable adapter.
 
-## Contoh pesan
+## Sample message
 
-![Contoh laporan harian di Telegram](docs/images/report-sample.png)
+![Sample daily report in Telegram](docs/images/report-sample.png)
 
-Semua data di repo ini **dummy** (properti fiktif "Villa Senja"). Tidak ada data tamu atau kredensial asli.
+The report itself is written in Indonesian. All data in this repo is **dummy** (a fictional property, "Villa Senja"). There is no real guest data and there are no real credentials.
 
-## Cara kerja
+## How it works
 
 ```
 GitHub Actions (cron) → DataSource → computeReport → formatReport → Telegram
 ```
 
-- Gratis: tanpa server, dijalankan GitHub Actions.
-- Tanpa token, skrip berjalan dalam mode dry-run dan mencetak laporan ke konsol.
+- Free: no server, it runs on GitHub Actions.
+- Without a token, the script runs in dry-run mode and prints the report to the console.
 
-## Coba sendiri
+## Try it yourself
 
-1. **Fork** repo ini.
-2. Buat bot di Telegram lewat [@BotFather](https://t.me/BotFather), simpan token-nya. Kirim satu pesan ke bot, lalu cari `chat_id` kamu.
-3. Di repo hasil fork: **Settings → Secrets and variables → Actions**, tambahkan:
+1. **Fork** this repo.
+2. Create a Telegram bot with [@BotFather](https://t.me/BotFather) and keep its token. Send one message to the bot, then find your `chat_id`.
+3. In your fork, open **Settings → Secrets and variables → Actions** and add:
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
-4. Buka tab **Actions → Daily report → Run workflow** untuk uji manual. Selanjutnya jalan otomatis tiap pagi.
+4. Open **Actions → Daily report → Run workflow** to test it by hand. After that it runs automatically every morning.
 
-Jangan pernah menaruh token di kode atau meng-commit file `.env`.
+Never put the token in code or commit a `.env` file.
 
-> Catatan: GitHub menonaktifkan workflow terjadwal pada repo yang tidak aktif 60 hari. Aktifkan lagi dari tab Actions bila itu terjadi. Jadwal juga bisa meleset beberapa menit.
+> Note: GitHub disables scheduled workflows in repos that have been inactive for 60 days. Turn it back on from the Actions tab if that happens. Scheduled runs can also start a few minutes late.
 
-## Jalankan lokal
+## Run it locally
 
 ```bash
 npm install
 npm test
-npm start          # dry-run, cetak ke konsol
+npm start          # dry-run, prints to the console
 ```
 
-Untuk mengirim sungguhan dari komputer sendiri, salin `.env.example` dan isi nilainya, lalu jalankan dengan variabel itu terpasang di environment.
+To send for real from your own machine, copy `.env.example`, fill in the values, and run with those variables set in your environment.
 
-## Sambungkan ke data asli
+## Connect real data
 
-Data dibaca lewat interface `DataSource` di [`src/types.ts`](src/types.ts):
+Data is read through the `DataSource` interface in [`src/types.ts`](src/types.ts):
 
 ```ts
 interface DataSource {
@@ -53,8 +53,8 @@ interface DataSource {
 }
 ```
 
-Buat kelas baru yang memenuhi interface itu (misalnya memanggil API backend booking kamu), lalu pakai di `src/main.ts` sebagai pengganti `DummyDataSource`. Bagian lain tidak perlu berubah.
+Write a new class that implements that interface (for example, one that calls your booking backend's API), then use it in `src/main.ts` in place of `DummyDataSource`. Nothing else needs to change.
 
-## Lisensi
+## License
 
-MIT. Lihat [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

@@ -1,49 +1,49 @@
-# Laporan Harian Otomatis — Design
+# Automated Daily Report: Design
 
-Tanggal: 2026-11-24 · Status: menunggu persetujuan
+Date: 2026-11-24 · Status: awaiting approval
 
-## Tujuan dan alasan
-Portofolio open source milik pemilik (vibe coder, bukan programmer) dengan tema hospitality. Modul pertama dari repo `resort-ops-automation`: laporan harian otomatis ke Telegram. Alasan: menunjukkan automasi nyata yang bisa didemokan, berangkat dari pengalaman operasional resort.
+## Purpose and reasons
+An open source, hospitality-themed portfolio for its owner (a vibe coder, not a programmer). The first module of the `resort-ops-automation` repo: an automated daily report sent to Telegram. The reason: show real automation that can be demoed, drawn from experience in resort operations.
 
 ## Goals
-- Setiap pagi 07:00 WIB, pesan ringkasan terkirim ke Telegram manajer tanpa kerja manual.
-- Isi laporan sesuai sketsa yang sudah disetujui (okupansi, check-in/out, pendapatan vs minggu lalu, booking baru + belum bayar, peringatan pembayaran tertunda).
-- Siapa pun bisa fork repo, isi token bot sendiri, dan menjalankannya.
-- Sumber data bisa diganti ke backend booking asli tanpa mengubah bagian lain.
+- Every morning at 07:00 WIB, a summary message reaches the manager's Telegram with no manual work.
+- The report content matches the approved sketch (occupancy, check-ins/check-outs, revenue vs last week, new bookings + unpaid, a warning about pending payments).
+- Anyone can fork the repo, fill in their own bot token, and run it.
+- The data source can be swapped for a real booking backend without changing anything else.
 
 ## Non-goals
-- Bot interaktif / penjawab tamu (itu alur lain, nanti).
-- Layanan yang selalu aktif, dashboard web, aplikasi mobile.
-- Integrasi data asli sekarang.
+- An interactive bot or guest responder (a separate track, later).
+- An always-on service, a web dashboard, a mobile app.
+- Real data integration for now.
 
-## Anti-goals (dianggap gagal walau jalan)
-- Ada data tamu, harga internal, atau kredensial asli di repo publik.
-- Token bot ter-commit.
-- Hanya pemilik yang bisa menjalankannya (tidak bisa direproduksi).
+## Anti-goals (count as failure even if it works)
+- Guest data, internal prices, or real credentials in the public repo.
+- A committed bot token.
+- Only the owner can run it (not reproducible).
 
 ## Constraints
-- Repo publik, lisensi MIT, nama properti fiktif.
-- Gratis: tanpa server berbayar.
-- Pemilik membuat sendiri bot Telegram lewat BotFather dan mengisi secrets GitHub; token tidak pernah masuk chat atau kode.
+- Public repo, MIT license, fictional property name.
+- Free: no paid server.
+- The owner creates the Telegram bot through BotFather and fills in the GitHub secrets; the token never appears in chat or code.
 
 ## Approaches
-| | Cara | Catatan |
+| | How | Notes |
 |---|---|---|
-| A | Layanan jalan terus di VPS | Ada biaya, sulit direproduksi |
-| **B (dipilih)** | Skrip dijalankan GitHub Actions terjadwal | Gratis, riwayat run jadi bukti, mudah di-fork. Ceiling: jadwal bisa meleset beberapa menit |
-| C | n8n | Ditolak: kurang meyakinkan sebagai portofolio |
+| A | An always-on service on a VPS | Costs money, hard to reproduce |
+| **B (chosen)** | A script run by scheduled GitHub Actions | Free, the run history is proof, easy to fork. Ceiling: scheduled runs can be a few minutes late |
+| C | n8n | Rejected: less convincing as a portfolio piece |
 
-Dipilih B oleh pemilik. Layanan selalu-aktif baru dibutuhkan di tahap Guest Companion.
+The owner chose B. An always-on service is only needed at the Guest Companion stage.
 
-## Keputusan (calls saya, bisa diubah)
-- Bahasa: TypeScript, Node 20, dijalankan dengan `tsx`.
-- Telegram dipanggil langsung lewat `fetch` ke Bot API, tanpa library tambahan.
-- Sumber data lewat satu interface `DataSource`; implementasi awal `DummyDataSource` menghasilkan data realistis dan deterministik per tanggal (properti fiktif "Villa Senja").
-- Mode dry-run: tanpa token, laporan dicetak ke konsol (untuk demo dan tes).
-- Jadwal: cron `0 0 * * *` UTC (= 07:00 WIB) + `workflow_dispatch` untuk demo manual.
-- Tes: satu berkas `node:test` untuk perhitungan metrik dan format pesan.
-- Laporan berbahasa Indonesia, nominal format Rp.
-- README: tujuan, screenshot pesan, cara fork + setup bot, cara ganti sumber data.
+## Decisions (my calls, open to change)
+- Language: TypeScript, Node 20, run with `tsx`.
+- Telegram is called directly with `fetch` against the Bot API, with no extra library.
+- Data comes through one `DataSource` interface; the first implementation, `DummyDataSource`, produces realistic data that is deterministic per date (fictional property "Villa Senja").
+- Dry-run mode: without a token, the report is printed to the console (for demos and tests).
+- Schedule: cron `0 0 * * *` UTC (= 07:00 WIB) + `workflow_dispatch` for a manual demo.
+- Tests: one `node:test` file for metric calculations and message formatting.
+- The report is in Indonesian, with amounts formatted in Rp.
+- README: purpose, a screenshot of the message, how to fork + set up the bot, how to swap the data source.
 
-## Diserahkan ke builder
-Pembangkitan angka dummy, tata letak pesan persis, struktur folder, isi workflow YAML, dan alur `.gitignore`/`.env.example`.
+## Left to the builder
+Generating the dummy numbers, the exact message layout, the folder structure, the workflow YAML, and the `.gitignore`/`.env.example` setup.

@@ -1,73 +1,73 @@
-# Laporan Harian Otomatis Implementation Plan
+# Automated Daily Report Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Skrip TypeScript yang dijalankan GitHub Actions setiap 07:00 WIB dan mengirim ringkasan operasional resort ke Telegram.
+**Goal:** A TypeScript script that GitHub Actions runs every day at 07:00 WIB to send a resort operations summary to Telegram.
 
-**Architecture:** `main.ts` memanggil `DataSource` (adapter, awalnya dummy) → `computeReport` (fungsi murni) → `formatReport` (fungsi murni) → `sendTelegram`. Tanpa token, hasil dicetak ke konsol (dry-run).
+**Architecture:** `main.ts` calls the `DataSource` (an adapter, dummy at first) → `computeReport` (a pure function) → `formatReport` (a pure function) → `sendTelegram`. Without a token, the result is printed to the console (dry-run).
 
-**Tech Stack:** Node 20, TypeScript, `tsx`, `node:test`, `fetch` bawaan. Tanpa dependency runtime.
+**Tech Stack:** Node 20, TypeScript, `tsx`, `node:test`, built-in `fetch`. No runtime dependencies.
 
 **Spec:** `docs/superpowers/specs/2026-11-24-daily-report-design.md`
 
 ## Global Constraints
 
-- Repo `resort-ops-automation`, lisensi MIT, properti fiktif "Villa Senja" (24 kamar).
-- Tanpa data/kredensial asli milik properti nyata; token hanya dari env `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+- Repo `resort-ops-automation`, MIT license, fictional property "Villa Senja" (24 rooms).
+- No real data or credentials from a real property; the token only comes from the env vars `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
 - Cron `0 0 * * *` UTC (= 07:00 WIB) + `workflow_dispatch`.
-- Laporan berbahasa Indonesia, nominal format Rp.
-- Semua "tanggal" dihitung dalam WIB (UTC+7).
-- Satu dependency dev saja: `tsx` (plus `typescript`, `@types/node`).
+- The report is in Indonesian, with amounts formatted in Rp.
+- Every "date" is computed in WIB (UTC+7).
+- Only one dev dependency: `tsx` (plus `typescript`, `@types/node`).
 
 ## Review Focus
 
-- Jumlah kamar 0 → okupansi 0%, tidak NaN/Infinity.
-- Pendapatan minggu lalu 0 → delta tampil "–", bukan NaN/Infinity.
-- Tidak ada booking sama sekali → laporan tetap terbentuk dengan angka 0.
-- Token tidak ada → dry-run cetak ke konsol, exit 0, tidak crash.
-- Telegram membalas error (mis. 401) → proses exit non-zero supaya run GitHub Actions merah.
-- Booking check-in tepat pada batas hari WIB (UTC 17:00 hari sebelumnya) dihitung ke tanggal WIB yang benar.
+- Room count 0 → 0% occupancy, not NaN/Infinity.
+- Last week's revenue 0 → the delta shows "–", not NaN/Infinity.
+- No bookings at all → the report still builds, with zeros.
+- No token → dry-run prints to the console, exits 0, does not crash.
+- Telegram replies with an error (e.g. 401) → the process exits non-zero so the GitHub Actions run turns red.
+- A booking that checks in exactly on the WIB day boundary (17:00 UTC the day before) counts toward the right WIB date.
 
 ---
 
-### Task 1: Scaffold proyek + tipe
+### Task 1: Project scaffold + types
 
 **Files:**
 - Create: `package.json`, `tsconfig.json`, `.gitignore`, `.env.example`, `LICENSE`, `src/types.ts`
 
 **Interfaces:**
 - Produces (`src/types.ts`):
-  - `type Booking = { id: string; roomId: string; checkIn: string; checkOut: string; totalIdr: number; status: 'paid' | 'pending'; createdAt: string }` — `checkIn`/`checkOut` format `YYYY-MM-DD` (WIB), `createdAt` ISO datetime UTC.
+  - `type Booking = { id: string; roomId: string; checkIn: string; checkOut: string; totalIdr: number; status: 'paid' | 'pending'; createdAt: string }`, where `checkIn`/`checkOut` use the `YYYY-MM-DD` format (WIB) and `createdAt` is an ISO datetime in UTC.
   - `interface DataSource { getRoomCount(): Promise<number>; getBookings(): Promise<Booking[]> }`
   - `type DailyReport = { date: string; roomCount: number; occupied: number; occupancyPct: number; checkIns: number; checkOuts: number; revenueYesterday: number; revenueLastWeek: number; revenueDeltaPct: number | null; newBookings: number; newUnpaid: number; overduePayments: number }`
 
-- [ ] **Step 1:** `git init` di folder proyek. Isi `package.json` (type `module`, scripts `start: tsx src/main.ts`, `test: tsx --test test/*.test.ts`, engines node >=20), `tsconfig.json` (strict, ESNext, moduleResolution bundler/node16 yang cocok dengan tsx), `.gitignore` (`node_modules`, `.env`), `.env.example` (nama variabel saja, tanpa nilai), `LICENSE` MIT atas nama pemilik repo.
-- [ ] **Step 2:** Tulis `src/types.ts` persis sesuai Interfaces di atas. Jalankan `npm install`.
-- [ ] **Step 3:** Jalankan `npx tsc --noEmit`. Expected: tanpa error.
+- [ ] **Step 1:** `git init` in the project folder. Fill in `package.json` (type `module`, scripts `start: tsx src/main.ts`, `test: tsx --test test/*.test.ts`, engines node >=20), `tsconfig.json` (strict, ESNext, a bundler/node16 moduleResolution that works with tsx), `.gitignore` (`node_modules`, `.env`), `.env.example` (variable names only, no values), and an MIT `LICENSE` in the repo owner's name.
+- [ ] **Step 2:** Write `src/types.ts` exactly as in Interfaces above. Run `npm install`.
+- [ ] **Step 3:** Run `npx tsc --noEmit`. Expected: no errors.
 - [ ] **Step 4: Commit** `chore: scaffold project and shared types`.
 
-### Task 2: DummyDataSource (deterministik)
+### Task 2: DummyDataSource (deterministic)
 
 **Files:**
 - Create: `src/data/dummy.ts`
 - Test: `test/dummy.test.ts`
 
 **Interfaces:**
-- Consumes: `DataSource`, `Booking` dari `src/types.ts`.
-- Produces: `class DummyDataSource implements DataSource { constructor(now: Date, seed?: number) }` — `getRoomCount()` selalu 24; `getBookings()` mengembalikan booking untuk jendela kira-kira 21 hari ke belakang sampai 7 hari ke depan dari `now`.
+- Consumes: `DataSource`, `Booking` from `src/types.ts`.
+- Produces: `class DummyDataSource implements DataSource { constructor(now: Date, seed?: number) }`; `getRoomCount()` always returns 24; `getBookings()` returns bookings for a window of roughly 21 days back to 7 days ahead of `now`.
 
-- [ ] **Step 1: Tes gagal** di `test/dummy.test.ts`:
-  - `returns identical bookings for same now and seed` (dua instance, `deepEqual`).
+- [ ] **Step 1: Failing tests** in `test/dummy.test.ts`:
+  - `returns identical bookings for same now and seed` (two instances, `deepEqual`).
   - `returns different bookings for different dates`.
   - `every booking has checkOut after checkIn and totalIdr > 0`.
   - `includes both paid and pending bookings`.
   - `room count is 24`.
-- [ ] **Step 2:** Jalankan `npx tsx --test test/dummy.test.ts`. Expected: FAIL (modul belum ada).
-- [ ] **Step 3:** Implementasi `DummyDataSource`: PRNG berbiji (mulberry32) diseed dari `seed` + tanggal WIB `now`; harga per malam 600.000–1.800.000; sekitar 70% booking `paid`; sebagian `pending` dengan `createdAt` bervariasi hingga 3 hari lalu (agar ada yang tertunda >24 jam).
-- [ ] **Step 4:** Jalankan tes lagi. Expected: PASS.
+- [ ] **Step 2:** Run `npx tsx --test test/dummy.test.ts`. Expected: FAIL (module does not exist yet).
+- [ ] **Step 3:** Implement `DummyDataSource`: a seeded PRNG (mulberry32) seeded from `seed` + the WIB date of `now`; nightly rates of 600,000–1,800,000; about 70% of bookings `paid`; some `pending` with `createdAt` spread over the last 3 days (so some are pending for more than 24 hours).
+- [ ] **Step 4:** Run the tests again. Expected: PASS.
 - [ ] **Step 5: Commit** `feat: add deterministic dummy data source`.
 
-### Task 3: computeReport (fungsi murni)
+### Task 3: computeReport (pure function)
 
 **Files:**
 - Create: `src/metrics.ts`
@@ -75,24 +75,24 @@
 
 **Interfaces:**
 - Consumes: `Booking`, `DailyReport`.
-- Produces: `toWibDate(d: Date): string` (format `YYYY-MM-DD` dalam WIB) dan `computeReport(bookings: Booking[], roomCount: number, now: Date): DailyReport`.
-- Definisi (keputusan saya): `occupied` = booking dengan `checkIn <= today < checkOut`; `checkIns`/`checkOuts` = booking dengan `checkIn === today` / `checkOut === today`; `revenueYesterday` = jumlah `totalIdr` booking `paid` dengan tanggal WIB `createdAt` = kemarin; `revenueLastWeek` = hal sama untuk 8 hari lalu (hari yang sama minggu lalu dari kemarin); `newBookings` = booking dengan `createdAt` kemarin; `newUnpaid` = yang `pending` di antaranya; `overduePayments` = booking `pending` dengan `createdAt` lebih dari 24 jam sebelum `now`; `revenueDeltaPct` = `null` bila `revenueLastWeek` 0; `occupancyPct` dibulatkan, 0 bila `roomCount` 0.
+- Produces: `toWibDate(d: Date): string` (`YYYY-MM-DD` in WIB) and `computeReport(bookings: Booking[], roomCount: number, now: Date): DailyReport`.
+- Definitions (my calls): `occupied` = bookings with `checkIn <= today < checkOut`; `checkIns`/`checkOuts` = bookings with `checkIn === today` / `checkOut === today`; `revenueYesterday` = the sum of `totalIdr` for `paid` bookings whose `createdAt` WIB date is yesterday; `revenueLastWeek` = the same for 8 days ago (the same weekday last week, counted from yesterday); `newBookings` = bookings created yesterday; `newUnpaid` = the `pending` ones among them; `overduePayments` = `pending` bookings with `createdAt` more than 24 hours before `now`; `revenueDeltaPct` = `null` when `revenueLastWeek` is 0; `occupancyPct` is rounded, and 0 when `roomCount` is 0.
 
-- [ ] **Step 1: Tes gagal** di `test/metrics.test.ts`:
+- [ ] **Step 1: Failing tests** in `test/metrics.test.ts`:
   - `toWibDate maps 2026-11-24T17:00:00Z to 2026-11-25`.
-  - `counts occupied rooms and occupancy percentage` (mis. 18 dari 24 → 75).
+  - `counts occupied rooms and occupancy percentage` (e.g. 18 of 24 → 75).
   - `counts check-ins and check-outs for today`.
   - `sums paid revenue created yesterday and computes delta vs last week`.
   - `delta is null when last week revenue is zero`.
   - `occupancy is 0 when roomCount is 0`.
   - `counts overdue pending payments older than 24 hours`.
   - `returns zeros for empty bookings`.
-- [ ] **Step 2:** Jalankan, Expected: FAIL.
-- [ ] **Step 3:** Implementasi `toWibDate` dan `computeReport` sesuai definisi di atas.
-- [ ] **Step 4:** Jalankan tes. Expected: PASS.
+- [ ] **Step 2:** Run, Expected: FAIL.
+- [ ] **Step 3:** Implement `toWibDate` and `computeReport` per the definitions above.
+- [ ] **Step 4:** Run the tests. Expected: PASS.
 - [ ] **Step 5: Commit** `feat: compute daily report metrics`.
 
-### Task 4: formatReport (fungsi murni)
+### Task 4: formatReport (pure function)
 
 **Files:**
 - Create: `src/format.ts`
@@ -100,17 +100,17 @@
 
 **Interfaces:**
 - Consumes: `DailyReport`.
-- Produces: `formatReport(r: DailyReport, propertyName: string): string` dan `formatRupiah(n: number): string`.
-- Format: sesuai sketsa disetujui (judul `📊 Laporan Harian · Sen, 25 Nov`, baris okupansi `18/24 kamar (75%)`, check-in/out, pendapatan `Rp 14,2 jt (↑ 8% vs minggu lalu)`, booking baru + belum bayar, baris peringatan). Delta `null` → `(– vs minggu lalu)`; panah ↓ bila negatif. `overduePayments` 0 → baris `✅ Tidak ada pembayaran tertunda`, selain itu `⚠️ Perlu perhatian : N pembayaran tertunda >24 jam`. `formatRupiah`: ≥ 1.000.000 → `Rp 14,2 jt`; di bawahnya → `Rp 850.000`.
+- Produces: `formatReport(r: DailyReport, propertyName: string): string` and `formatRupiah(n: number): string`.
+- Format: as in the approved sketch (title `📊 Laporan Harian · Sen, 25 Nov`, the occupancy line `18/24 kamar (75%)`, check-ins/outs, revenue `Rp 14,2 jt (↑ 8% vs minggu lalu)`, new bookings + unpaid, a warning line). A `null` delta → `(– vs minggu lalu)`; a ↓ arrow when negative. `overduePayments` 0 → the line `✅ Tidak ada pembayaran tertunda` (no pending payments), otherwise `⚠️ Perlu perhatian : N pembayaran tertunda >24 jam` (needs attention: N payments pending for more than 24 hours). `formatRupiah`: ≥ 1,000,000 → `Rp 14,2 jt`; below that → `Rp 850.000`.
 
-- [ ] **Step 1: Tes gagal** di `test/format.test.ts`:
-  - `formats millions as "Rp 14,2 jt"` dan `formats under a million as "Rp 850.000"`.
+- [ ] **Step 1: Failing tests** in `test/format.test.ts`:
+  - `formats millions as "Rp 14,2 jt"` and `formats under a million as "Rp 850.000"`.
   - `includes up-arrow and percent when delta positive`, `down-arrow when negative`, `dash when delta is null`.
-  - `shows warning line when overdue > 0` dan `shows all-clear line when overdue is 0`.
-  - `header contains Indonesian weekday and month` (mis. tanggal 2026-11-25 → `Sel, 25 Nov`).
-- [ ] **Step 2:** Jalankan, Expected: FAIL.
-- [ ] **Step 3:** Implementasi tanpa library; nama hari/bulan dari array Indonesia.
-- [ ] **Step 4:** Jalankan tes. Expected: PASS.
+  - `shows warning line when overdue > 0` and `shows all-clear line when overdue is 0`.
+  - `header contains Indonesian weekday and month` (e.g. the date 2026-11-25 → `Sel, 25 Nov`).
+- [ ] **Step 2:** Run, Expected: FAIL.
+- [ ] **Step 3:** Implement without a library; day and month names from an Indonesian array.
+- [ ] **Step 4:** Run the tests. Expected: PASS.
 - [ ] **Step 5: Commit** `feat: format report message in Indonesian`.
 
 ### Task 5: Telegram sender + main (dry-run)
@@ -121,29 +121,29 @@
 
 **Interfaces:**
 - Consumes: `DummyDataSource`, `computeReport`, `formatReport`.
-- Produces: `sendTelegram(token: string, chatId: string, text: string, fetchImpl?: typeof fetch): Promise<void>` — POST ke `https://api.telegram.org/bot<token>/sendMessage`, melempar `Error` bila respons `!ok` (pesan error tidak boleh memuat token).
+- Produces: `sendTelegram(token: string, chatId: string, text: string, fetchImpl?: typeof fetch): Promise<void>`, which POSTs to `https://api.telegram.org/bot<token>/sendMessage` and throws an `Error` when the response is `!ok` (the error message must not contain the token).
 
-- [ ] **Step 1: Tes gagal** di `test/telegram.test.ts` dengan `fetchImpl` palsu:
+- [ ] **Step 1: Failing tests** in `test/telegram.test.ts` with a fake `fetchImpl`:
   - `posts chat_id and text to sendMessage`.
   - `throws when response is not ok`.
   - `error message does not contain the token`.
-- [ ] **Step 2:** Jalankan, Expected: FAIL.
-- [ ] **Step 3:** Implementasi `sendTelegram`. Lalu `src/main.ts`: bangun `DummyDataSource(new Date())`, hitung + format laporan ("Villa Senja"); bila `TELEGRAM_BOT_TOKEN` dan `TELEGRAM_CHAT_ID` ada → kirim, kalau tidak → `console.log` pesan dengan catatan dry-run dan exit 0. Error saat kirim → cetak pesan aman dan `process.exit(1)`.
-- [ ] **Step 4:** Jalankan `npm test` (Expected: semua PASS) lalu `npm start` tanpa env (Expected: laporan tercetak di konsol, exit 0).
+- [ ] **Step 2:** Run, Expected: FAIL.
+- [ ] **Step 3:** Implement `sendTelegram`. Then `src/main.ts`: build `DummyDataSource(new Date())`, compute + format the report ("Villa Senja"); if `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set → send, otherwise `console.log` the message with a dry-run note and exit 0. An error while sending → print a safe message and `process.exit(1)`.
+- [ ] **Step 4:** Run `npm test` (Expected: all PASS), then `npm start` without env (Expected: the report is printed to the console, exit 0).
 - [ ] **Step 5: Commit** `feat: send report to Telegram with dry-run mode`.
 
-### Task 6: Workflow GitHub Actions + README
+### Task 6: GitHub Actions workflow + README
 
 **Files:**
 - Create: `.github/workflows/daily-report.yml`, `.github/workflows/test.yml`, `README.md`
 
-- [ ] **Step 1:** `daily-report.yml`: trigger `schedule` cron `0 0 * * *` dan `workflow_dispatch`; langkah checkout, setup-node 20, `npm ci`, `npm start` dengan env dari `secrets.TELEGRAM_BOT_TOKEN` dan `secrets.TELEGRAM_CHAT_ID`. `test.yml`: jalankan `npm test` pada push dan pull request.
-- [ ] **Step 2:** `README.md` (Indonesia + ringkasan Inggris singkat): tujuan, contoh pesan, diagram alur satu baris, cara fork + buat bot via BotFather + isi secrets, cara mengganti sumber data dengan mengimplementasikan `DataSource`, catatan bahwa data adalah dummy, lisensi MIT.
-- [ ] **Step 3:** Validasi YAML (mis. baca ulang, pastikan indentasi benar) dan `npm test` masih PASS.
+- [ ] **Step 1:** `daily-report.yml`: triggers on a `schedule` cron of `0 0 * * *` and on `workflow_dispatch`; steps: checkout, setup-node 20, `npm ci`, `npm start` with env from `secrets.TELEGRAM_BOT_TOKEN` and `secrets.TELEGRAM_CHAT_ID`. `test.yml`: run `npm test` on push and pull request.
+- [ ] **Step 2:** `README.md` (Indonesian + a short English summary): purpose, a sample message, a one-line flow diagram, how to fork + create a bot with BotFather + fill in the secrets, how to swap the data source by implementing `DataSource`, a note that the data is dummy, MIT license.
+- [ ] **Step 3:** Validate the YAML (e.g. reread it and make sure the indentation is right) and check that `npm test` still passes.
 - [ ] **Step 4: Commit** `ci: add scheduled workflow and README`.
 
-### Task 7: Publikasi (dikerjakan bersama pemilik)
+### Task 7: Publishing (done together with the owner)
 
-- [ ] **Step 1:** Pemilik membuat repo kosong publik `resort-ops-automation` di GitHub. Saya `git remote add` dan `git push` setelah pemilik konfirmasi.
-- [ ] **Step 2:** Pemilik membuat bot di BotFather dan mengisi `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` di Settings → Secrets. Token tidak dikirim ke chat.
-- [ ] **Step 3:** Jalankan workflow manual (`workflow_dispatch`). Expected: run hijau dan pesan masuk ke Telegram. Ambil screenshot pesan untuk README.
+- [ ] **Step 1:** The owner creates an empty public `resort-ops-automation` repo on GitHub. I run `git remote add` and `git push` after the owner confirms.
+- [ ] **Step 2:** The owner creates the bot in BotFather and fills in `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` under Settings → Secrets. The token is never sent to the chat.
+- [ ] **Step 3:** Run the workflow by hand (`workflow_dispatch`). Expected: a green run and a message in Telegram. Take a screenshot of the message for the README.
